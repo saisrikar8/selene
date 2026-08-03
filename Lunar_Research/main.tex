@@ -1,0 +1,369 @@
+\documentclass[conference]{IEEEtran}
+\documentclass[twocolumn, letterpaper]{article}
+\twocolumn
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{cite}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{caption}
+\usepackage{anyfontsize}
+
+% Redefine abstract to change font size to 15pt
+\makeatletter
+\makeatother
+\hypersetup{colorlinks=true, allcolors=blue}
+
+\setlength{\parindent}{1.5em}
+
+
+%Feedback
+%Use more quantitative statements than qualitative terms (i.e. "quite low", "significantly improved")
+
+\title{SELENE: A Deep Learning Model for Predicting Lunar Absorbed Radiation Dose Rates}
+
+
+
+\author{
+  \IEEEauthorblockN{Sai Srikar Tummala*}
+  \IEEEauthorblockA{\textit{Independent Researcher}
+  \\\textit{San Jose, CA}
+  \\\textit{United States}
+  \\\textit{tummalasaisrikar@gmail.com}}
+
+  \and
+
+  
+  \IEEEauthorblockN{Mittansh Bhatia*}
+  \IEEEauthorblockA{\textit{Independent Researcher}
+  \\\textit{Sunnyvale, CA}
+  \\\textit{United States}
+  \\\textit{bhatiamittansh@gmail.com}
+  }
+  \and
+
+  \IEEEauthorblockN{Robert Chun}
+  \IEEEauthorblockA{\textit{Computer Science Department} \\
+                    \textit{San Jose State University}
+                    \\
+                    \textit{San Jose, CA, USA}
+                    \\
+                    \textit{robert.chun@sjsu.edu}
+                    }
+                    
+}
+
+\begin{document}
+
+\maketitle
+\setlength{\textfloatsep}{10pt plus 1.0pt minus 2.0pt}
+\setlength{\intextsep}{10pt plus 1.0pt minus 2.0pt}
+\setlength{\floatsep}{10pt plus 1.0pt minus 2.0pt}
+\setlength{\dbltextfloatsep}{10pt plus 1.0pt minus 2.0pt}
+\setcounter{topnumber}{5}
+\setcounter{bottomnumber}{5}
+\setcounter{totalnumber}{10}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.9}
+\setlength{\intextsep}{6pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{-2pt}
+
+\begin{abstract}
+
+Lunar exploration faces major challenges because the Moon lacks a magnetic field and atmosphere, exposing astronauts to harmful radiation from galactic cosmic rays and solar energetic particles. Traditional radiation models rely on computationally intensive physics simulations, which are often slow and require significant resources. This study introduces SELENE (Space Environment Lunar Exposure Neural Estimator), an artificial neural network designed to rapidly predict lunar surface radiation dose rates using space weather data. SELENE is trained on over 27,000 data points collected from the CRaTER instrument aboard the Lunar Reconnaissance Orbiter, enabling fast and accurate radiation forecasting essential for protecting astronauts on future lunar missions.
+\end{abstract}
+
+\begin{IEEEkeywords}
+lunar radiation, radiation prediction, deep learning, space weather, SELENE
+\end{IEEEkeywords}
+
+\vspace{1em}
+
+\noindent \textbf{Submission Type:} Regular Research Paper
+
+\section{Introduction}
+Modern plans for sustained lunar exploration and habitation demand accurate knowledge of the radiation environment on the Moon’s surface. The absence of a planetary magnetic field or significant atmosphere exposes astronauts and equipment like space suits and communication systems to galactic cosmic rays (GCRs) which are high-energy particles originating from outside our solar system traveling around the speed of light, and sporadic solar particle events (SPEs) which are sudden and intense bursts of energetic particles, primarily photons, released by the Sun. These pose serious risks. Several prior efforts have explored computer-enhanced predictions of space radiation.
+
+Dobynde et al.~developed the REDMoon simulator using GEANT4 and Monte Carlo simulations to characterize the absorbed and equivalent dose on the lunar surface \cite{2022cosp...44.2697D, Du2024}.
+
+Wimmer-Schweingruber et al.~presented the first active dosimetric measurements with the Lunar Lander Neutron and Dosimetry (LND) experiment aboard Chang’e 4 \cite{Wimmer2020, Zhang2020}. Their data quantified the flux and energy spectra of both primary GCR protons and albedo neutrons/protons, confirming REDMoon’s predictions and showing absorbed dose rates of roughly 200–800 $\mu$Sv/day.
+
+Halder et al.~combined OLTARIS and CRaTER datasets along with ARIMA and Random Forest models to map background radiation levels across the lunar surface \cite{Singleterry2010, Slaba2013}, revealing spatial variations in absorbed dose driven by local terrain and composition.
+
+We novelly present the idea of utilizing deep learning to rapidly estimate lunar surface radiation dose rates from space weather particle flux data. While radiation dose can be derived from first principles using particle energy spectra, stopping power functions, and quality factors, such physics-based simulations—like those using GEANT4 or HZETRN—are computationally intensive, require detailed input on shielding and material geometry, and are often impractical for real-time decision-making during lunar missions.
+
+In contrast, we propose a data-driven approach that uses artificial neural networks (ANNs)  to create a model known as SELENE (Space Environment Lunar Exposure Neural Estimator) in order to learn the complex nonlinear relationship between measured particle fluxes and corresponding radiation dose rates. Recent studies have also explored the use of LSTM and probabilistic deep learning models to predict SEP/GCR spectra and dose forecasts \cite{Papagiannopoulos2023, Zampieri2024}. In the future, models that forecast space weather conditions could be combined with our radiation prediction model to enable end-to-end forecasting of lunar surface radiation. SELENE is trained on over 27,000 hours of data compiled from the CRaTER instrument on the Lunar Reconnaissance Orbiter \cite{Looper2020} and flux measurements from the ACE SIS and CRIS detectors \cite{Stone1998SIS, Cummings1998}. After performing correlation-based feature selection, we trained an ANN to predict absorbed dose rates recorded by CRaTER using only flux features from ACE. SELENE achieved a mean absolute percentage error (MAPE) of 14.26\% on the validation dataset, demonstrating the feasibility of using machine learning as a fast, lightweight alternative to physics-based radiation estimation.
+
+This approach has promising applications for future lunar exploration, enabling real-time radiation monitoring and risk assessment for crewed missions without requiring extensive computational infrastructure or detailed environmental modeling.
+
+\section{Related Work}
+
+Modeling lunar radiation environments has traditionally relied on physics-based simulations and empirical measurements. Monte Carlo tools such as REDMoon \cite{Du2024} use GEANT4 to simulate particle interactions and estimate dose rates, but these methods are computationally intensive and impractical for real-time applications.
+
+Dosimetric data from missions like Chang’e 4's LND experiment \cite{Wimmer2020, Zhang2020} provide valuable ground truth but do not directly offer predictive capabilities. Statistical models combining datasets such as OLTARIS and CRaTER with ARIMA or Random Forests \cite{Singleterry2010, Slaba2013} have mapped radiation spatial variability, yet lack deep learning-driven nonlinear modeling and focus mainly on retrospective analyses.
+
+Recent machine learning approaches focus on forecasting space weather parameters or particle fluxes using recurrent or probabilistic neural networks \cite{Papagiannopoulos2023, Zampieri2024}. However, these models do not directly predict absorbed lunar dose rates from multi-instrument flux data.
+
+Our model, SELENE, fills this gap by leveraging a fully connected artificial neural network trained on over 27,000 synchronized hourly measurements from CRaTER and ACE instruments. This approach enables rapid, direct prediction of lunar absorbed dose rates from space weather particle flux features, offering a lightweight alternative to physics simulations with potential for real-time mission support.
+
+To our knowledge, SELENE is among the first to integrate multi-instrument space weather data via deep learning specifically for lunar radiation dose rate prediction.
+
+
+\section{Methods}
+
+\subsection{Data Sources}
+NASA has launched several space missions equipped with sensors that collect data on the lunar environment. The primary datasets used for training and validating this model come from the Advanced Composition Explorer (ACE)\cite{Spence2010,Looper2020}  and the Cosmic Ray Telescope for the Effects of Radiation (CRaTER) instruments \cite{Stone1998ACE, Stone1998SIS, Cummings1998}.
+ 
+CRaTER is an instrument aboard NASA’s Lunar Reconnaissance Orbiter (LRO), which has been orbiting the Moon since 2009. It measures the radiation dose rates at the lunar surface, providing critical data on the lunar radiation environment.
+
+ACE, launched in 1997 and positioned at the Earth–Sun L1 Lagrange point, one of five points in space where the gravitational forces of two large orbiting bodies balance each other, allowing a smaller object to maintain a relatively stable position. It continuously monitors the solar wind, energetic particles, and cosmic rays arriving from the Sun and beyond. Among its onboard instruments, the Cosmic Ray Isotope Spectrometer (CRIS) measures galactic cosmic rays (GCRs)—highly energetic charged particles originating outside the solar system. The Solar Isotope Spectrometer (SIS) monitors solar energetic particles (SEPs), which are charged particles emitted by the Sun during solar flares and coronal mass ejections.
+
+The GCR and SEP data from ACE’s CRIS and SIS instruments provide a comprehensive characterization of the radiation environment near Earth and the Moon. By integrating this information with CRaTER’s dose measurements, we can accurately estimate the absorbed radiation dose rates at the lunar surface.
+
+%fix "quite low", "weak correlation"
+\subsection{Dataset Integration and Preprocessing}
+Initially, the input features from ACE and the target dose rates from CRaTER were used without enforcing consistent temporal granularity. Specifically, the CRaTER data provided daily radiation dose rates, while the CRIS and SIS data from ACE were recorded at an hourly resolution. This mismatch in timestamp alignment led to noisy correlations and degraded model performance. As shown in Figure~\ref{fig:correlation}, the correlation between the radiation dose denoted as dose\_D1 and the space weather data is -0.26. In Figure~\ref{fig:bad_prediction} it is clear that this correlation is not signficiant enough for SELENE to detect, causing it to predict the same value each time.
+
+\begin{figure}[htbp]
+\centering
+\scalebox{0.5}[0.5]{
+\includegraphics{correlation_with_dose_top50.png}
+}
+\caption{Correlation heatmap between radiation dose and other features.}
+\label{fig:correlation}
+\end{figure}
+
+To resolve this, all datasets were reprocessed to a common daily resolution. The ACE data was aggregated by computing the mean flux and count values over each day, aligning with the daily dose rate measurements from CRaTER. This temporal harmonization increased the strongest correlation between the radiation dose and the features from -0.26 to 0.4.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.5\textwidth]{bad_prediction.png}
+\caption{Initial model predictions before temporal alignment.}
+\label{fig:bad_prediction}
+\end{figure}
+
+
+\subsection{Feature Selection}
+After aggregating the data to a daily resolution, feature selection was performed to reduce noise and improve SELENE's ability to learn the relationship between the input vectors and the radiation dose. To identify the most informative features, we computed the Pearson correlation coefficients between each feature and the target dose values.
+
+
+%Fix "weakly correlated"
+As shown in the resulting heatmap in Figure~\ref{fig:better-correlation}, the highest observed correlation was approximately 0.4, indicating a moderate linear relationship. However, many of the features not shown in the heatmap exhibited very weak or negligible correlations with correlation coefficients under 0.01 magnitude. Including these weakly correlated features introduced unnecessary noise, which hindered SELENE's ability to generalize effectively.
+
+Based on this analysis, we concluded that omitting low-correlation features was necessary to enhance model accuracy and reduce overfitting.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.28\textwidth]{correlation_with_dose_top50_better.png}
+\caption{Refined correlation heatmap after daily aggregation.}
+\label{fig:better-correlation}
+\end{figure}
+
+\subsection{SELENE Architecture}
+SELENE is a fully connected feedforward artificial neural network (ANN) to predict lunar absorbed radiation dose rates from particle flux data. SELENE was constructed using TensorFlow and trained on scaled feature vectors extracted from selected high-correlation channels in the ACE SIS and CRIS datasets. The target variable was the daily averaged absorbed dose rate measured by the CRaTER instrument.
+
+
+
+\begin{itemize}
+    \item Input layer: 18 features
+    
+    \item Hidden Layer 1: 64 units, batch normalization ($\hat{x}^{(i)} = \frac{x^{(i)} - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}$, where $x^{(i)}$ is the input to the layer, $\mu_B$ is the mean of the batch, $\sigma_B^2$ is the batch variance, and $\epsilon$ is a small constant for numerical stability; 
+    $y^{(i)} = \gamma \hat{x}^{(i)} + \beta$, where $\gamma$ is a learnable scaling parameter and $\beta$ is a learnable shifting parameter), LeakyReLU ($f(x) = \max(x, \alpha x)$, where $x$ is the input and $\alpha = 0.01$ controls the slope for negative values), dropout = 0.4
+    
+    \item Hidden Layer 2: 32 units, batch normalization (same formulation as above), LeakyReLU, dropout = 0.3
+    
+    \item Output layer: 1 neuron (linear activation)
+\end{itemize}
+
+
+To mitigate overfitting, $L_2$ kernel regularization ($\lambda \|\mathbf{W}\|_2^2 = \lambda \sum_{i,j} W_{ij}^2$, where $\lambda = 0.01$ is the regularization strength, $\mathbf{W}$ is the weight matrix, and $W_{ij}$ denotes the individual weights) was applied to each dense layer. The network used the Adam optimizer and was trained with early stopping and learning rate reduction on plateau.
+
+To train SELENE, the dataset was shuffled, and 80\% of the data was used for training while the remaining 20\% was reserved for validation. As shown in Figure~\ref{fig:training_curve}, both training and validation losses consistently decrease over epochs, indicating stable learning. The model was trained using the Mean Absolute Error (MAE) loss function. (\( \text{MAE} = \frac{1}{n} \sum_{i=1}^{n} \left| y_i - \hat{y}_i \right| \), where \( y_i \) is the true daily averaged dose rate.) Although dropout is active during training and can increase the apparent loss, it is disabled when computing MAE on the evaluation set. This discrepancy reveals that dropout helped SELENE generalize and learn meaningful patterns, as the true MAE is lower than the training loss suggests.
+
+Input features are scaled to create standardized feature vectors using z-score normalization (\( X_{\text{scaled}} = \frac{X - \mu_X}{\sigma_X} \), where \( \mu_X \) is the mean and \( \sigma_X \) is the standard deviation of feature \( X \)).
+
+\subsection{Linear Regression}
+To provide a baseline for comparison, a traditional linear regression model was trained using ordinary least squares on the same feature set as SELENE. This model assumes a linear relationship between particle flux inputs and the dose rate and provides interpretable coefficients.
+
+\subsection{XGBoost Regression}
+To evaluate a powerful nonlinear tree-based approach, an XGBoost regression model was implemented. XGBoost is an ensemble of gradient-boosted decision trees optimized for speed and performance developed by Chen et. al.\cite{chen2016xgboost}. Hyperparameter tuning was performed via cross-validation, adjusting tree depth, learning rate, and number of estimators to maximize predictive accuracy. Feature importance metrics from XGBoost also helped validate the feature selection process.
+
+\subsection{Monte Carlo Dropout for Uncertainty Quantification}
+Building on the SELENE architecture, Monte Carlo (MC) Dropout was implemented to estimate predictive uncertainty. Unlike standard inference where dropout layers are disabled, MC Dropout keeps dropout active during prediction. Multiple stochastic forward passes ($T=100$) are performed per input sample, with the mean of predictions providing the dose estimate and the variance representing uncertainty. This method allows identification of predictions with low confidence, which is critical for operational risk assessment during lunar missions.
+
+\subsection{SAINT Model}
+For further comparison, the SAINT (Self-Attention and Intersample Attention Transformer) model was trained on the same tabular data. SAINT, developed by Somepalli et. al.\cite{somepalli2021saint}, leverages transformer architectures to capture feature interactions and sample relations, representing a state-of-the-art method for tabular regression. Training included standard optimization and early stopping strategies.
+
+
+
+\section{Results and Discussion}
+
+To evaluate the performance of SELENE and benchmark it against other models, several regression metrics were computed on the validation dataset, including Mean Squared Error (MSE), Mean Absolute Error (MAE), coefficient of determination ($R^2$), and Mean Absolute Percentage Error (MAPE). Table~\ref{tab:model_metrics} summarizes the key results for each model.
+
+\begin{table}[htbp]
+\centering
+\caption{Performance metrics for SELENE and baseline models}
+\label{tab:model_metrics}
+\begin{tabular}{|p{2.43cm}|p{`1.25cm}|p{1.25cm}|p{1.01cm}|p{0.8cm}|}
+\hline
+\textbf{Model} & \textbf{MSE} & \textbf{MAE} & \textbf{$R^2$} & \textbf{MAPE} \\
+\hline
+SELENE (ANN) & \textbf{0.00093602} & \textbf{0.00429024} & \textbf{0.8342} & \textbf{14.26\%} \\
+Monte Carlo Dropout & 0.00097653 & 0.00441782 & 0.8270 & 14.93\% \\
+XGBoost & 0.00558249 & 0.00815728& 0.0112 & 42.83\% \\Linear Regression & 0.000416 & 0.008782 & 0.3875 & 60.67\% \\SAINT Model & 1.4503 & 0.8853 & -2135.48 & 79.27\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{training_curve.png}
+\caption{This graph shows the loss and mean absolute error without dropout relative to the number of epochs completed in the training loop in order to show the progression of the model's learning.}
+\label{fig:training_curve}
+\end{figure}
+
+\subsection{SELENE Neural Network Performance}
+SELENE achieved the best overall predictive accuracy among all models, with a Mean Absolute Percentage Error (MAPE) of 14.26\%, a coefficient of determination ($R^2$) of 0.8342, and the lowest MAE and MSE values. This indicates that SELENE captures the nonlinear relationships between particle fluxes and absorbed dose rates effectively, providing robust estimates across the dataset. Figure~\ref{fig:training_curve} reveals SELENE's consistent learning as it is constantly decreasing the error for each epoch. Both the validation and training curves appear to be decreasing continuously, revealing how SELENE effectively picked up patterns and applied it to new inputs.
+
+
+
+
+\subsection{Monte Carlo Dropout}
+By performing 100 stochastic forward passes with dropout enabled during inference, the Monte Carlo Dropout variant of SELENE produced both point predictions and uncertainty estimates. The mean predictive variance was approximately $7.44 \times 10^{-4}$, providing valuable confidence information that can assist in mission planning under uncertain conditions.
+
+The MC Dropout model achieved a mean squared error (MSE) of 0.00097653 and a mean absolute error (MAE) of 0.00441782, alongside a strong coefficient of determination ($R^{2}$) of 0.8270.The mean absolute percentage error (MAPE) was 14.93\%, reflecting typical proportional error magnitudes relative to the target values.
+
+Correlation analyses between predictive variance and absolute errors yielded statistically significant Pearson ($r = 0.4643$, $p < 10^{-144}$) and Spearman ($\rho = 0.4137$, $p < 10^{-112}$) coefficients, demonstrating that higher uncertainty predictions generally correspond to larger errors. This relationship supports the utility of MC Dropout uncertainty as a proxy for model confidence as shown in Figure~\ref{fig:uncertainty_pred_err}. 
+
+To further assess the effectiveness of Monte Carlo (MC) Dropout in identifying high-error predictions, we evaluated its ability to flag such points using varying uncertainty thresholds. High-error samples were defined using a fixed prediction error threshold, and we computed precision, recall, and F1 scores across different uncertainty percentiles. As shown in Figure~\ref{fig:MCDropout_metrics}, the 90th percentile yielded the best trade-off among all three metrics, making it the most effective threshold for identifying low-confidence predictions. At this threshold, the model achieved a precision, recall, and F1 score of 51.7\%.
+
+
+Overall, the MC Dropout approach balances predictive performance with informative uncertainty quantification, enhancing SELENE’s capabilities for space radiation dose estimation and contributing to safer mission planning.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{MCDropout_uncertainty_vs_prederror.png}
+    \caption{This graph reveals the correlation between the uncertainty values yielded by the Monte Carlo Dropout and the actual error of the model.}
+    \label{fig:uncertainty_pred_err}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \vspace{10pt}
+    \includegraphics[width=0.75\linewidth]{MCDropout_metrics.png}
+    \caption{This graph reveals the F1, precision, and recall scores of the Monte Carlo Dropout's ability to identify extreme error for different thresholds.}
+    \label{fig:MCDropout_metrics}
+\end{figure}
+
+
+\begin{figure}[htbp]
+    \centering
+    \vspace{20pt}
+    \includegraphics[width=0.7\linewidth]{MCDropout_pred_vs_true.png}
+    \caption{This graph reveals the overall error of the Monte Carlo Dropout model by comparing the true output values and their corresponding predicted values from the model.}
+    \label{fig:MCDropout_pred_vs_true}
+\end{figure}
+
+
+
+
+\begin{figure}[htbp]
+    \centering
+    \vspace{-4pt}
+    \includegraphics[width=0.7\linewidth]{xgboost_pred_vs_true.png}
+    \caption{This graph reveals the overall error of the XGBoost model by comparing the true output values and their corresponding predicted values from the model.}
+    \label{fig:xgboost_pred_vs_true}
+\end{figure}
+
+
+\subsection{XGBoost Regression}
+XGBoost, while generally considered one of the most effective machine learning models, underperformed in this application as shown in Figure~\ref{fig:xgboost_pred_vs_true}. It achieved an MAE of 0.00816—almost double that of SELENE—and a markedly low R² of 0.0112, indicating that it captured almost none of the variance in dose rates. In the scatterplot, it is visible that the XGBoost model provides the same output for multiple true values, revealing the architecture's inability to match the complexity of the problem.
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{linear_regression_pred_vs_true.png}
+    \caption{This graph reveals the overall error of the linear regression model by comparing the true output values and their corresponding predicted values from the model.}
+    \label{fig:linreg_pred_vs_true}
+\end{figure}
+
+\subsection{Linear Regression}
+Linear regression, which assumes purely linear relationships, performed significantly worse than SELENE, yielding a higher MAPE of 60.67\%, an MAE of 0.008782, and an R² of 0.3875. As shown in Figure~\ref{fig:linreg_pred_vs_true}, the model consistently underpredicts radiation levels for true values exceeding 0.75. This systematic underestimation highlights the limitations of linear models in capturing the complex dynamics of lunar radiation and underscores the necessity of nonlinear modeling techniques for this task.
+
+
+
+\subsection{SAINT Transformer Model}
+The SAINT transformer model yielded the worst performance by a substantial margin. With an MAE of 0.8853 and an R² of –2135.48, the model not only failed to fit the data but also performed worse than a baseline model that simply predicted the mean dose rate for all inputs. This negative R² indicates a total breakdown in the model's ability to capture any meaningful relationships. The SAINT model’s poor performance likely stems from the noisy nature of the dataset since it is space weather data. Space weather sensors operate in an inherently noisy and extreme environment. Despite SAINT's robustness, it is not enough to combat the noisy nature of the data.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{SAINT_pred_vs_true.png}
+    \caption{This graph reveals the overall error of the SAINT model by comparing the true output values and their corresponding predicted values from the model.}
+    \label{fig:SAINT_pred_vs_true}
+\end{figure}
+
+
+
+
+\subsection{Error Analysis}
+
+A notable pattern emerges when examining the prediction errors as a function of radiation dose magnitude: the magnitude of the error tends to increase as the actual radiation dose increases. Both underestimations and overestimations become more pronounced at higher dose rates, indicating that SELENE has greater difficulty accurately predicting extreme radiation values. This trend suggests that SELENE’s performance degrades somewhat in regimes of elevated radiation exposure, which may correspond to more complex or less frequently represented particle flux conditions in the training data.
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{underapproximation.png}
+    \caption{An example of systematic underprediction error at higher radiation doses, showing that SELENE tends to underestimate elevated dose rates.}
+    \label{fig:underapproximation}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{overapproximation.png}
+    \caption{An example of systematic overprediction error at higher radiation doses, demonstrating SELENE's tendency to overestimate dose rates under certain conditions.}
+    \label{fig:overapproximation}
+\end{figure}
+
+This behavior is also clearly visible in the scatter plot of true versus predicted values (Figure~\ref{fig:true_vs_pred}), where the spread and variance in prediction errors increase with radiation dose. Figure~\ref{fig:underapproximation} illustrates SELENE’s tendency to underpredict during high radiation periods, potentially due to sparse representation of such events or increased nonlinearity in dose-flux relationships. Conversely, Figure~\ref{fig:overapproximation} shows overprediction in some flux conditions, emphasizing the challenges of modeling extreme radiation scenarios.
+
+Using MC Dropout, we addressed this issue by generating probabilistic predictions and quantifying model confidence through predictive variance. In the case of underapproximation (Figure~\ref{fig:underapproximation}), the predicted variance was 0.01898, placing it in the 99.56th percentile of all variance values. Similarly, for the overapproximation shown in Figure~\ref{fig:overapproximation}, the variance was 0.20167—corresponding to the 99.92nd percentile. These high uncertainty estimates align with the observed large prediction errors, highlighting MC Dropout’s effectiveness in signaling low-confidence predictions.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\linewidth]{true_vs_predicted.png}
+    \caption{Scatter plot of true vs. predicted values. The $y = x$ reference line illustrates perfect agreement. Most predictions cluster closely around this line, indicating strong model fidelity across the full dose range.}
+    \label{fig:true_vs_pred}
+\end{figure}
+
+Such increasing error variance at higher dose rates is a common challenge in regression problems with skewed or heavy-tailed target distributions. This insight points toward future improvements, such as integrating additional temporal or contextual features, or employing loss functions weighted to penalize large errors more heavily.
+Figure~\ref{fig:true_vs_pred} presents a scatter plot comparing true and predicted dose values for SELENE, illustrating a strong correlation and close clustering along the ideal $y = x$ line, with most predictions falling within a narrow band around the ground truth.
+
+
+
+\subsection{Future Directions}
+
+Building on the current findings, several avenues exist for further enhancing lunar radiation dose prediction models:
+
+\begin{itemize}
+    \item \textbf{Temporal features}: Incorporating lagged flux measurements or rolling statistics may enable the models to better capture delayed radiation effects.
+    \item \textbf{Shielding parameters}: Integrating spacecraft or habitat shielding data could provide more realistic dose estimates for astronaut safety assessments.
+    \item \textbf{Real-time deployment}: Assessing inference speed and memory requirements to enable onboard, low-power prediction on lunar missions.
+\end{itemize}
+
+
+\section{Conclusion}
+
+As space exploration advances, continued lunar missions are essential to prepare for deeper exploration into the solar system. However, the Moon’s harsh radiation environment—due to its lack of atmosphere and shielding—poses a serious risk to human explorers, especially during solar flares and coronal mass ejections. While existing models, such as those by Dobynde et al.\cite{2022cosp...44.2697D} and Gurav et al.\cite{Zampieri2024}, offer accurate predictions using detailed simulations and imagery, they often require extensive computational resources or high-fidelity data. In contrast, SELENE demonstrates that fast, lightweight, and effective radiation forecasting is possible even with noisy input data. By enabling real-time risk assessment in resource-constrained environments, SELENE represents a critical step toward safer, more sustainable lunar exploration. Future work could focus on improving predictive accuracy through multimodal data integration and extending the model to support mission planning for Mars and beyond.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

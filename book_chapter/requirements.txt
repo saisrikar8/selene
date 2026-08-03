@@ -1,0 +1,12 @@
+# Python 3.11-3.13. Versions below are what the code was authored against;
+# looser is fine. On Apple Silicon, `tensorflow` is the CPU/Metal build.
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.5
+scipy>=1.13
+xgboost>=2.1
+tensorflow>=2.16
+shap>=0.46
+matplotlib>=3.9
+joblib>=1.4
+pytest>=8.0
