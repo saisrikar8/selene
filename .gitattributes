@@ -1,0 +1,5 @@
+# Keep GitHub's language stats focused on the actual model code (Python).
+# The LaTeX manuscript and bibliography are documentation, not source code.
+*.tex linguist-documentation
+*.bib linguist-documentation
+*.bst linguist-vendored
